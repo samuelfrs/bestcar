@@ -50,53 +50,58 @@ export default function VehicleCard({ car }: VehicleCardProps) {
 
   return (
     <>
-      <div className="group relative flex flex-col rounded-3xl bg-neutral-900 border border-neutral-800 overflow-hidden shadow-lg hover:shadow-2xl hover:border-neutral-700 transition-all duration-300 hover:-translate-y-2 h-full">
-        {/* Image Area */}
-        <div className="relative aspect-[4/3] w-full bg-neutral-800 overflow-hidden">
+      <div className="group relative flex flex-col bg-black border border-neutral-800 hover:border-emerald-500 transition-colors duration-300 h-full overflow-hidden">
+        
+        {/* Decorative corner accent - Brutalist */}
+        <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none z-10">
+          <div className="absolute top-0 right-0 w-full h-[2px] bg-emerald-500 scale-x-0 origin-right transition-transform duration-300 group-hover:scale-x-100"></div>
+          <div className="absolute top-0 right-0 w-[2px] h-full bg-emerald-500 scale-y-0 origin-top transition-transform duration-300 group-hover:scale-y-100"></div>
+        </div>
+
+        {/* Image Area - Sharp borders */}
+        <div className="relative aspect-[4/3] w-full bg-neutral-950 overflow-hidden border-b border-neutral-800 group-hover:border-emerald-500/50 transition-colors">
           {car.image_url ? (
             <img 
               src={car.image_url} 
               alt={`${car.brand} ${car.model}`}
-              className="object-cover w-full h-full transition-transform duration-700 ease-out group-hover:scale-110"
+              className="object-cover w-full h-full grayscale-[20%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-600 bg-gradient-to-br from-neutral-800 to-neutral-900 relative">
-              <svg className="w-16 h-16 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span className="absolute bottom-4 left-4 text-xs font-semibold text-neutral-500 uppercase tracking-widest backdrop-blur-sm bg-neutral-900/50 px-2 py-1 rounded-md">Sem Imagem</span>
+            <div className="w-full h-full flex items-center justify-center text-neutral-800 bg-[repeating-linear-gradient(45deg,rgba(0,0,0,1),rgba(0,0,0,1)_10px,rgba(20,20,20,1)_10px,rgba(20,20,20,1)_20px)] relative">
+              <span className="font-mono text-xs font-bold text-neutral-600 uppercase tracking-[0.2em] border border-neutral-800 px-3 py-1 bg-black">SYS.IMG_N/A</span>
             </div>
           )}
           
-          {/* Status badge */}
+          {/* Status badge - Tech style */}
           {car.status.toLowerCase() !== 'disponível' && (
-            <div className="absolute top-4 right-4 bg-red-600/90 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm border border-red-500/50">
-              {car.status}
+            <div className="absolute top-3 left-3 bg-red-600/10 text-red-500 border-l-2 border-red-500 text-[10px] font-mono font-bold px-2 py-1 uppercase tracking-widest backdrop-blur-md">
+              [{car.status}]
             </div>
           )}
           
-          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          {/* Scanner overlay effect on hover */}
+          <div className="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none mix-blend-overlay" />
         </div>
 
         {/* Content Area */}
-        <div className="flex flex-col flex-grow p-6 space-y-5">
-          <div className="space-y-1.5">
-            <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">{car.brand}</p>
-            <h3 className="text-xl font-bold text-neutral-100 line-clamp-1 group-hover:text-emerald-400 transition-colors duration-300">
+        <div className="flex flex-col flex-grow p-5 md:p-6 bg-neutral-950/50 relative z-10">
+          <div className="space-y-1 mb-4">
+            <p className="text-[10px] font-mono font-bold text-emerald-500 uppercase tracking-[0.2em]">::{car.brand}</p>
+            <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter leading-none group-hover:text-emerald-400 transition-colors duration-300">
               {car.model}
             </h3>
           </div>
           
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-neutral-800/80 text-neutral-300 border border-neutral-700">
-              Ano: {car.year}
+          <div className="flex items-center gap-2 mb-auto">
+            <span className="inline-flex items-center px-2 py-1 bg-neutral-900 border border-neutral-800 text-neutral-400 font-mono text-[10px] uppercase tracking-widest">
+              ANO_{car.year}
             </span>
           </div>
 
-          <div className="mt-auto pt-5 border-t border-neutral-800 flex flex-col gap-4">
+          <div className="mt-6 pt-5 border-t border-neutral-900 flex flex-col gap-4">
             <div>
-              <p className="text-xs text-neutral-500 font-bold pb-1.5 uppercase tracking-wider">Valor Sugerido</p>
-              <p className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br from-emerald-400 to-teal-500">
+              <p className="font-mono text-[9px] text-neutral-600 font-bold mb-1 uppercase tracking-widest block">Valor Ref.</p>
+              <p className="text-2xl font-black text-white tracking-tighter shadow-emerald-500/20 drop-shadow-md">
                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(car.price)}
               </p>
             </div>
@@ -104,57 +109,68 @@ export default function VehicleCard({ car }: VehicleCardProps) {
             <button 
               onClick={() => setIsModalOpen(true)}
               disabled={car.status.toLowerCase() !== 'disponível'}
-              className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-semibold rounded-xl text-sm transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative w-full py-3 overflow-hidden bg-neutral-900 text-neutral-300 hover:text-black font-mono font-bold text-xs tracking-widest uppercase transition-all duration-300 border border-neutral-800 hover:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed group/btn"
             >
-              Tenho Interesse
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                Tenho Interesse
+                <svg className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </span>
+              <div className="absolute inset-0 bg-emerald-500 scale-x-0 origin-left group-hover/btn:scale-x-100 transition-transform duration-300 ease-out z-0"></div>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Modal Overlay */}
+      {/* Modal Overlay - Brutalist Version */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
+            className="absolute inset-0 bg-black/90 backdrop-blur-md transition-opacity" 
             onClick={() => !isSubmitting && setIsModalOpen(false)}
           />
           
-          <div className="relative bg-neutral-900 border border-neutral-800 rounded-3xl w-full max-w-md p-8 shadow-2xl transform transition-all">
+          <div className="relative bg-neutral-950 border-2 border-neutral-800 w-full max-w-md p-8 shadow-[0_0_50px_rgba(0,0,0,0.8)] transform transition-all before:absolute before:inset-0 before:pointer-events-none before:bg-[radial-gradient(ellipse_at_top_right,rgba(16,185,129,0.05),transparent_50%)] pointer-events-auto">
+            {/* Cyberpunk corner details */}
+            <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-emerald-500/50"></div>
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-emerald-500/50"></div>
+
             <button 
               onClick={() => setIsModalOpen(false)}
               disabled={isSubmitting}
-              className="absolute top-5 right-5 text-neutral-500 hover:text-white transition-colors disabled:opacity-50"
+              className="absolute top-5 right-5 text-neutral-600 hover:text-emerald-500 transition-colors disabled:opacity-50"
               aria-label="Cerrar modal"
             >
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
 
             {success ? (
               <div className="text-center py-8">
-                <div className="w-20 h-20 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
-                  <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <div className="w-16 h-16 border-2 border-emerald-500 text-emerald-500 flex items-center justify-center mx-auto mb-6 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-white tracking-tight mb-2">Contato enviado com sucesso!</h3>
-                <p className="text-neutral-400 text-sm">
-                  Nossa equipe já recebeu seus dados e entrará em contato em breve pelo WhatsApp.
+                <h3 className="text-2xl font-black text-white tracking-tighter uppercase mb-2">Enviado</h3>
+                <p className="text-neutral-500 font-mono text-xs uppercase tracking-widest">
+                  Processo concluído. Nossa equipe assumirá o protocolo em breve.
                 </p>
               </div>
             ) : (
               <div>
-                <h3 className="text-2xl font-bold text-white tracking-tight mb-1">Tenho Interesse</h3>
-                <p className="text-neutral-400 mb-6 text-sm">
-                  Deixe seus dados e nossa equipe entrará em contato sobre o <strong className="text-emerald-400 font-medium">{car.brand} {car.model}</strong>.
-                </p>
+                <p className="font-mono text-[10px] font-bold text-emerald-500 tracking-widest uppercase mb-1">:: Contato</p>
+                <h3 className="text-3xl font-black text-white tracking-tighter uppercase mb-6 leading-none block">
+                  {car.brand}<br />
+                  <span className="text-neutral-500">{car.model}</span>
+                </h3>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <label htmlFor="name" className="block text-xs font-semibold text-neutral-300 uppercase tracking-wide mb-2">
-                      Nome completo
+                    <label htmlFor="name" className="block text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest mb-2">
+                      Seu Nome <span className="text-emerald-500">*</span>
                     </label>
                     <input
                       id="name"
@@ -163,14 +179,14 @@ export default function VehicleCard({ car }: VehicleCardProps) {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       disabled={isSubmitting}
-                      className="w-full bg-neutral-800/80 border border-neutral-700 text-white rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder:text-neutral-500 shadow-inner"
-                      placeholder="Seu nome completo"
+                      className="w-full bg-black border border-neutral-800 text-white px-4 py-3 font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-neutral-800 rounded-none"
+                      placeholder="NOME COMPLETO"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="phone" className="block text-xs font-semibold text-neutral-300 uppercase tracking-wide mb-2">
-                      WhatsApp
+                    <label htmlFor="phone" className="block text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest mb-2">
+                      WhatsApp <span className="text-emerald-500">*</span>
                     </label>
                     <input
                       id="phone"
@@ -179,33 +195,41 @@ export default function VehicleCard({ car }: VehicleCardProps) {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       disabled={isSubmitting}
-                      className="w-full bg-neutral-800/80 border border-neutral-700 text-white rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all placeholder:text-neutral-500 shadow-inner"
-                      placeholder="(DD) 90000-0000"
+                      className="w-full bg-black border border-neutral-800 text-white px-4 py-3 font-mono text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-neutral-800 rounded-none"
+                      placeholder="(00) 00000-0000"
                     />
                   </div>
 
                   {error && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-500 text-sm flex items-start gap-2">
-                      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <div className="bg-red-500/10 border-l-2 border-red-500 p-3 text-red-500 font-mono text-xs flex items-start gap-2 uppercase tracking-wide">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <span>{error}</span>
+                      <span>ERR: {error}</span>
                     </div>
                   )}
 
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-4 mt-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] disabled:opacity-70 disabled:cursor-not-allowed group flex justify-center items-center"
+                    className="relative w-full py-4 mt-4 overflow-hidden bg-neutral-900 border border-neutral-800 hover:border-emerald-500 text-white font-mono font-bold text-sm tracking-widest uppercase transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group/submit flex justify-center items-center"
                   >
-                    {isSubmitting ? (
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    ) : (
-                      "Enviar Contato"
-                    )}
+                    <div className="absolute inset-0 bg-emerald-500 scale-y-0 origin-bottom group-hover/submit:scale-y-100 transition-transform duration-300 ease-in-out z-0"></div>
+                    <span className="relative z-10 group-hover/submit:text-black transition-colors flex items-center gap-2">
+                      {isSubmitting ? (
+                        <>
+                          Proc...
+                          <span className="block w-2 h-2 bg-white animate-ping"></span>
+                        </>
+                      ) : (
+                        <>
+                          Enviar
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="square" strokeLinejoin="miter" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                        </>
+                      )}
+                    </span>
                   </button>
                 </form>
               </div>
