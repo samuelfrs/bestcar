@@ -10,6 +10,12 @@
 !.yarn/releases
 !.yarn/versions
 
+# AI
+/.agents
+/.agent
+/_agents
+/_agent
+
 # testing
 /coverage
 
