@@ -98,6 +98,13 @@ export default function AdminDashboard() {
     setIsLoadingLeads(false);
   };
 
+  const handleDeleteLead = async (id: string, name: string) => {
+    if (!window.confirm(`Tem certeza que deseja excluir o lead ${name}?`)) return;
+    const { error } = await supabase.from('leads').delete().eq('id', id);
+    if (error) alert('Erro ao excluir: ' + error.message);
+    else { setSuccessMsg(`Lead removido com sucesso.`); fetchLeads(); setTimeout(() => setSuccessMsg(''), 4000); }
+  };
+
   // --- VEHICLES ---
   const fetchVehicles = async () => {
     setIsLoadingVehicles(true);
@@ -233,7 +240,8 @@ export default function AdminDashboard() {
                
                <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 overflow-hidden">
                  {isLoadingVehicles ? <div className="py-20 text-center text-neutral-500">Carregando...</div> : vehicles.length === 0 ? <div className="py-20 text-center text-neutral-500">Nenhum veículo no estoque.</div> : (
-                   <table className="w-full text-left border-collapse">
+                   <div className="overflow-x-auto pb-4">
+                     <table className="w-full text-left border-collapse min-w-[600px]">
                       <thead>
                         <tr className="border-b border-neutral-800">
                           <th className="pb-4 font-bold text-neutral-500 uppercase tracking-widest text-xs">Veículo</th>
@@ -271,7 +279,8 @@ export default function AdminDashboard() {
                           </tr>
                         ))}
                       </tbody>
-                   </table>
+                     </table>
+                   </div>
                  )}
                </div>
             </section>
@@ -282,17 +291,22 @@ export default function AdminDashboard() {
                <header><h1 className="text-4xl font-bold text-white tracking-tight">Leads</h1></header>
                <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 overflow-hidden">
                  {isLoadingLeads ? <div className="py-20 text-center text-neutral-500">Carregando...</div> : leads.length === 0 ? <div className="py-20 text-center text-neutral-500">Sem leads.</div> : (
-                   <table className="w-full text-left border-collapse">
-                      <thead><tr className="border-b border-neutral-800"><th className="pb-4 font-bold text-neutral-500 uppercase tracking-widest text-xs">Lead</th><th className="pb-4 font-bold text-neutral-500 uppercase tracking-widest text-xs">Veículo de Interesse</th></tr></thead>
-                      <tbody className="divide-y divide-neutral-800/50">
-                        {leads.map(l => (
-                          <tr key={l.id} className="hover:bg-neutral-800/30">
-                            <td className="py-4 font-bold text-white">{l.customer_name}<br /><span className="text-emerald-400 text-sm font-mono mt-1 block">{l.customer_phone}</span></td>
-                            <td className="py-4 text-neutral-300">{l.vehicles ? `${l.vehicles.brand} ${l.vehicles.model}` : "Desconhecido"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                   </table>
+                   <div className="overflow-x-auto pb-4">
+                     <table className="w-full text-left border-collapse min-w-[500px]">
+                        <thead><tr className="border-b border-neutral-800"><th className="pb-4 font-bold text-neutral-500 uppercase tracking-widest text-xs">Lead</th><th className="pb-4 font-bold text-neutral-500 uppercase tracking-widest text-xs">Veículo de Interesse</th><th className="pb-4 font-bold text-neutral-500 uppercase tracking-widest text-xs">Ações</th></tr></thead>
+                        <tbody className="divide-y divide-neutral-800/50">
+                          {leads.map(l => (
+                            <tr key={l.id} className="hover:bg-neutral-800/30">
+                              <td className="py-4 font-bold text-white">{l.customer_name}<br /><span className="text-emerald-400 text-sm font-mono mt-1 block">{l.customer_phone}</span></td>
+                              <td className="py-4 text-neutral-300">{l.vehicles ? `${l.vehicles.brand} ${l.vehicles.model}` : "Desconhecido"}</td>
+                              <td className="py-4">
+                                <button onClick={() => handleDeleteLead(l.id, l.customer_name)} className="text-red-500 hover:text-red-400 transition-colors font-semibold text-sm">Excluir</button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                     </table>
+                   </div>
                  )}
                </div>
             </section>
