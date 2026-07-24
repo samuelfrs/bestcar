@@ -55,8 +55,11 @@ npm install
 Crie um arquivo `.env.local` na raiz do projeto com as seguintes variáveis do seu projeto Supabase:
 
 ```env
+# Públicas (Frontend & Cliente)
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anonima-publica
+
+# Privada (Apenas Servidor - Server Actions / Admin)
 SUPABASE_SERVICE_ROLE_KEY=sua-chave-service-role-privada
 ```
 
