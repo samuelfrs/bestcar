@@ -34,7 +34,7 @@ Uma plataforma web moderna e de alta performance desenvolvida para concessionár
 - **Linguagem:** [TypeScript](https://www.typescriptlang.org/)
 - **Estilização:** [Tailwind CSS](https://tailwindcss.com/)
 - **Banco de Dados & Autenticação:** [Supabase](https://supabase.com/) (PostgreSQL, Auth, RLS)
-- **Hospedagem Recomendada:** [Vercel](https://vercel.com/)
+- **Hospedagem:** [Vercel](https://vercel.com/)
 
 ---
 
