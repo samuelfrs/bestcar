@@ -32,6 +32,11 @@ interface UserRow {
 // Ação de Login
 export async function loginAction(email: string, passwordString: string) {
   try {
+    if (!process.env.DATABASE_URL) {
+      console.error('DATABASE_URL não configurada no ambiente.');
+      return { error: 'Configuração do banco de dados (DATABASE_URL) ausente no servidor.' };
+    }
+
     if (!email || !passwordString) {
       return { error: 'E-mail e senha são obrigatórios.' };
     }
@@ -74,8 +79,9 @@ export async function loginAction(email: string, passwordString: string) {
 
     return { success: true, user: sessionPayload };
   } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Erro interno';
     console.error('Erro na autenticação:', err);
-    return { error: 'Erro interno ao tentar autenticar.' };
+    return { error: `Erro na autenticação: ${msg}` };
   }
 }
 
