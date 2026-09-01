@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { loginAction } from '../actions';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -16,13 +16,10 @@ export default function LoginPage() {
     setIsLoading(true);
     setErrorMsg('');
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const res = await loginAction(email, password);
 
-    if (error) {
-      setErrorMsg('Credenciais inválidas. Verifique seu e-mail e senha.');
+    if (res?.error) {
+      setErrorMsg(res.error);
       setIsLoading(false);
     } else {
       router.push('/admin');

@@ -1,15 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Instância leve e direta para o ping
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { sql } from '@/lib/db';
 
 export async function GET(request: Request) {
   // Verificação de segurança: Garantir que apenas a infraestrutura da Vercel consiga disparar isso.
-  // A Vercel automaticamente envia um Bearer token contendo a chave CRON_SECRET que ela mesma gera.
   const authHeader = request.headers.get('authorization');
   if (
     process.env.VERCEL_ENV === 'production' && 
@@ -20,23 +13,21 @@ export async function GET(request: Request) {
   }
 
   try {
-    // O chamado de "Keep Alive": Um simples SELECT buscando apenas 1 ID. 
-    // É o suficiente para acionar computação no banco de dados e evitar que o Supabase desligue o seu projeto no Plano Grátis.
-    const { data, error } = await supabase
-      .from('vehicles')
-      .select('id')
-      .limit(1);
+    // Ping de verificação / health check no Neon PostgreSQL
+    const rows = await sql`
+      SELECT id FROM vehicles LIMIT 1
+    `;
     
-    if (error) throw error;
-
     return NextResponse.json({ 
       success: true, 
-      message: 'Ping de Manutenção (Keep Alive) realizado com sucesso.',
+      message: 'Ping de Manutenção realizado com sucesso no Neon PostgreSQL.',
+      count: rows.length,
       timestamp: new Date().toISOString()
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro desconhecido';
     console.error("Erro na rotina cron:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

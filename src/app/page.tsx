@@ -1,14 +1,11 @@
-import { supabase } from '@/lib/supabase';
+import { getVehicles } from '@/app/actions/vehicles';
 import { Vehicle } from '@/types';
 import VehicleCard from '@/components/VehicleCard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const { data: vehicles, error } = await supabase
-    .from('vehicles')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data: vehicles } = await getVehicles();
 
   // Fallback in case of error
   const cars = (vehicles as Vehicle[]) || [];

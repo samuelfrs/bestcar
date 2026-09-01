@@ -12,28 +12,29 @@ Uma plataforma web moderna e de alta performance desenvolvida para concessionár
 - **Design Responsivo & Brutalista:** Interface escura (*Dark Mode*), linhas de grid marcantes, tipografia moderna e animações sutis.
 
 ### 🛡️ Painel Administrativo (`/admin`)
-- **Autenticação Segura:** Login administrativo integrado ao Supabase Auth.
+- **Autenticação Segura:** Autenticação nativa com senhas criptografadas em `bcryptjs` e sessões gerenciadas em cookies `HttpOnly` com `jose` (JWT).
 - **Controle de Acesso (RBAC):** Permissões diferenciadas entre **Administrador** e **Moderador**.
 - **Gestão de Estoque (CRUD):** Adição, edição e exclusão de veículos em tempo real com modal responsivo adaptado para mobile e desktop.
 - **Gestão de Leads:** Visualização detalhada dos contatos recebidos com opção de exclusão de leads.
-- **Gestão de Equipe (Exclusivo Admin):** Criação e remoção de credenciais de membros da equipe (administradores ou moderadores) utilizando Server Actions com a Supabase Admin API.
+- **Gestão de Equipe (Exclusivo Admin):** Criação e remoção de credenciais de membros da equipe utilizando Server Actions no Next.js.
 
 ---
 
 ## 🔒 Segurança e Arquitetura do Backend
 
-- **Row Level Security (RLS):** Regras ativas no banco PostgreSQL (Supabase). Usuários anônimos da vitrine só possuem permissão para **leitura de veículos** e **inserção de leads**. Operações de alteração e exclusão requerem autenticação e validação de perfil.
-- **Server Actions Protegidas:** Operações sensíveis de gerenciamento de equipe usam Server Actions no Next.js com verificação em duas etapas (validação do token JWT e checagem de role no servidor).
-- **Chaves de API Isoladas:** A `SUPABASE_SERVICE_ROLE_KEY` permanece 100% restrita ao ambiente do servidor (`.env.local`), garantindo que nenhuma credencial administrativa vaze para o frontend.
+- **PostgreSQL Serverless (Neon):** Banco de dados relacional moderno com alta disponibilidade, conexão serverless otimizada via `@neondatabase/serverless`.
+- **Server Actions Protegidas:** Operações de mutação e consulta administrativa executam estritamente no servidor com validação do usuário logado via cookies de sessão seguros.
+- **Isolamento de Credenciais:** `DATABASE_URL` e `JWT_SECRET` permanecem restritos ao ambiente do servidor (`.env.local` / Vercel Environment Variables).
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **Framework:** [Next.js 15](https://nextjs.org/) (App Router)
+- **Framework:** [Next.js 16](https://nextjs.org/) (App Router & React 19)
 - **Linguagem:** [TypeScript](https://www.typescriptlang.org/)
-- **Estilização:** [Tailwind CSS](https://tailwindcss.com/)
-- **Banco de Dados & Autenticação:** [Supabase](https://supabase.com/) (PostgreSQL, Auth, RLS)
+- **Estilização:** [Tailwind CSS v4](https://tailwindcss.com/)
+- **Banco de Dados:** [Neon PostgreSQL](https://neon.tech/) (`@neondatabase/serverless`)
+- **Segurança & Auth:** `bcryptjs` + `jose`
 - **Hospedagem:** [Vercel](https://vercel.com/)
 
 ---
@@ -52,18 +53,24 @@ npm install
 ```
 
 ### 3. Configurar as Variáveis de Ambiente
-Crie um arquivo `.env.local` na raiz do projeto com as seguintes variáveis do seu projeto Supabase:
+Crie um arquivo `.env.local` na raiz do projeto com as credenciais do seu banco Neon:
 
 ```env
-# Públicas (Frontend & Cliente)
-NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anonima-publica
+# Connection String do Neon PostgreSQL
+DATABASE_URL="postgresql://[usuario]:[senha]@[host-neon].neon.tech/[banco]?sslmode=require"
 
-# Privada (Apenas Servidor - Server Actions / Admin)
-SUPABASE_SERVICE_ROLE_KEY=sua-chave-service-role-privada
+# Segredo para assinatura de tokens JWT de sessão (ex: string aleatória longa)
+JWT_SECRET="sua_chave_secreta_super_segura_aqui"
 ```
 
-### 4. Rodar o servidor de desenvolvimento
+### 4. Executar as Migrações e Seed Inicial
+Para criar a estrutura de tabelas e o usuário administrador inicial (`admin@bestcar.com` / `adminpassword123`), execute:
+
+```bash
+npm run seed
+```
+
+### 5. Rodar o servidor de desenvolvimento
 ```bash
 npm run dev
 ```
@@ -74,4 +81,4 @@ Abra [http://localhost:3000](http://localhost:3000) no seu navegador para ver a 
 
 ## 📝 Licença
 
-Este projeto foi desenvolvido para fins de portfólio e demonstração.
+Este projeto foi desenvolvido para fins de demonstração e portfólio.

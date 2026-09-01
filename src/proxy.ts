@@ -1,60 +1,48 @@
-import { NextResponse, type NextRequest } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
+
+const SESSION_COOKIE_NAME = 'bestcar_session';
+
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET || 'bestcar_default_secure_secret_key_change_in_production_32chars';
+  return new TextEncoder().encode(secret);
+}
 
 export default async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  let isAuthenticated = false;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
+  if (token) {
+    try {
+      await jwtVerify(token, getJwtSecret());
+      isAuthenticated = true;
+    } catch {
+      isAuthenticated = false;
     }
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/admin/login')
-  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
-
-  // Not logged in but trying to access an admin route
-  if (!user && isAdminRoute && !isAuthRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/admin/login'
-    return NextResponse.redirect(url)
   }
 
-  // Logged in but trying to access the login page
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/admin'
-    return NextResponse.redirect(url)
+  const isAuthRoute = request.nextUrl.pathname.startsWith('/admin/login');
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
+
+  // Não autenticado tentando acessar qualquer rota dentro de /admin (exceto login)
+  if (!isAuthenticated && isAdminRoute && !isAuthRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin/login';
+    return NextResponse.redirect(url);
   }
 
-  return supabaseResponse
+  // Já autenticado tentando acessar a página de login
+  if (isAuthenticated && isAuthRoute) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin';
+    return NextResponse.redirect(url);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-}
+};

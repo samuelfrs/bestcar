@@ -1,88 +1,204 @@
-"use server"
+"use server";
 
-import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
+import { sql } from '@/lib/db';
+import { 
+  getSessionUser, 
+  hashPassword, 
+  verifyPassword, 
+  createSessionToken, 
+  SESSION_COOKIE_NAME,
+  type SessionUser 
+} from '@/lib/auth';
+import { cookies } from 'next/headers';
 
-// Bypass RLS strictly for Admin-Server Actions
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } }
-  )
+// Helper para verificar se quem está chamando é Administrador
+async function verifyAdmin(): Promise<SessionUser | null> {
+  const user = await getSessionUser();
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
+  return user;
 }
 
-// Ensure the caller is authenticated AND an Admin
-async function verifyAdmin() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
-  )
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return false;
-  
-  // Use service role to check role to avoid RLS circular issues if any
-  const adminSupabase = getAdminClient();
-  const { data: roleData } = await adminSupabase.from('user_roles').select('role').eq('user_id', user.id).single();
-  
-  return roleData?.role === 'admin';
+interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  password_hash: string;
+  role: 'admin' | 'moderador';
+  created_at: string | Date;
 }
 
+// Ação de Login
+export async function loginAction(email: string, passwordString: string) {
+  try {
+    if (!email || !passwordString) {
+      return { error: 'E-mail e senha são obrigatórios.' };
+    }
+
+    const rows = (await sql`
+      SELECT id, name, email, password_hash, role
+      FROM users
+      WHERE LOWER(email) = LOWER(${email.trim()})
+      LIMIT 1
+    `) as unknown as UserRow[];
+
+    if (rows.length === 0) {
+      return { error: 'Credenciais inválidas. Verifique seu e-mail e senha.' };
+    }
+
+    const user = rows[0];
+    const passwordMatch = await verifyPassword(passwordString, user.password_hash);
+
+    if (!passwordMatch) {
+      return { error: 'Credenciais inválidas. Verifique seu e-mail e senha.' };
+    }
+
+    const sessionPayload: SessionUser = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    };
+
+    const token = await createSessionToken(sessionPayload);
+    const cookieStore = await cookies();
+
+    cookieStore.set(SESSION_COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 dias
+    });
+
+    return { success: true, user: sessionPayload };
+  } catch (err: unknown) {
+    console.error('Erro na autenticação:', err);
+    return { error: 'Erro interno ao tentar autenticar.' };
+  }
+}
+
+// Ação de Logout
+export async function logoutAction() {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete(SESSION_COOKIE_NAME);
+    return { success: true };
+  } catch (err: unknown) {
+    console.error('Erro ao deslogar:', err);
+    return { error: 'Erro ao deslogar.' };
+  }
+}
+
+// Obter usuário da sessão
+export async function getCurrentUserAction() {
+  const user = await getSessionUser();
+  return { user };
+}
+
+// Criar novo membro da equipe (Apenas Admin)
 export async function createUser(email: string, role: string, name: string, passwordString: string) {
-  if (!(await verifyAdmin())) return { error: "Acesso negado. Apenas Administradores." };
-  
-  const adminClient = getAdminClient();
-  
-  const { data, error } = await adminClient.auth.admin.createUser({
-    email,
-    password: passwordString,
-    email_confirm: true,
-    user_metadata: { name: name }
-  });
-  
-  if (error) return { error: error.message };
-  
-  const { error: roleError } = await adminClient.from('user_roles').insert({
-    user_id: data.user.id,
-    role: role
-  });
-  
-  if (roleError) return { error: roleError.message };
-  return { success: true, user: { email, role, id: data.user.id } };
+  const admin = await verifyAdmin();
+  if (!admin) {
+    return { error: 'Acesso negado. Apenas Administradores podem criar usuários.' };
+  }
+
+  if (!email || !passwordString || !name) {
+    return { error: 'Todos os campos são obrigatórios.' };
+  }
+
+  if (passwordString.length < 6) {
+    return { error: 'A senha deve ter pelo menos 6 caracteres.' };
+  }
+
+  const validRole = role === 'admin' ? 'admin' : 'moderador';
+
+  try {
+    const existing = (await sql`
+      SELECT id FROM users WHERE LOWER(email) = LOWER(${email.trim()}) LIMIT 1
+    `) as unknown as Array<{ id: string }>;
+
+    if (existing.length > 0) {
+      return { error: 'Já existe um usuário cadastrado com este e-mail.' };
+    }
+
+    const hashedPassword = await hashPassword(passwordString);
+
+    const inserted = (await sql`
+      INSERT INTO users (name, email, password_hash, role)
+      VALUES (${name.trim()}, ${email.trim().toLowerCase()}, ${hashedPassword}, ${validRole})
+      RETURNING id, name, email, role, created_at
+    `) as unknown as UserRow[];
+
+    const newUser = inserted[0];
+    return { 
+      success: true, 
+      user: { 
+        id: newUser.id, 
+        email: newUser.email, 
+        name: newUser.name, 
+        role: newUser.role 
+      } 
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Erro ao criar usuário.';
+    console.error('Erro ao criar usuário:', err);
+    return { error: msg };
+  }
 }
 
+// Excluir usuário (Apenas Admin)
 export async function deleteUser(userId: string) {
-  if (!(await verifyAdmin())) return { error: "Acesso negado." };
-  
-  const adminClient = getAdminClient();
-  
-  // As a protection, we prevent the user from deleting themselves, but since we don't pass the current user ID we'll just let it rely on common sense.
-  const { error } = await adminClient.auth.admin.deleteUser(userId);
-  if (error) return { error: error.message };
-  
-  return { success: true };
+  const admin = await verifyAdmin();
+  if (!admin) {
+    return { error: 'Acesso negado.' };
+  }
+
+  if (admin.id === userId) {
+    return { error: 'Você não pode excluir sua própria conta de administrador.' };
+  }
+
+  try {
+    await sql`
+      DELETE FROM users
+      WHERE id = ${userId}
+    `;
+
+    return { success: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Erro ao excluir usuário.';
+    console.error('Erro ao excluir usuário:', err);
+    return { error: msg };
+  }
 }
 
+// Listar todos os usuários (Apenas Admin)
 export async function getUsers() {
-  if (!(await verifyAdmin())) return { error: "Acesso negado." };
-  
-  const adminClient = getAdminClient();
-  const { data: usersData, error } = await adminClient.auth.admin.listUsers();
-  if (error) return { error: error.message };
-  
-  const { data: rolesData } = await adminClient.from('user_roles').select('*');
-  
-  const merged = usersData.users.map(u => ({
-    id: u.id,
-    email: u.email,
-    name: u.user_metadata?.name || 'Sistema',
-    created_at: u.created_at,
-    role: rolesData?.find(r => r.user_id === u.id)?.role || 'moderador'
-  }));
-  
-  return { users: merged };
+  const admin = await verifyAdmin();
+  if (!admin) {
+    return { error: 'Acesso negado.' };
+  }
+
+  try {
+    const rows = (await sql`
+      SELECT id, name, email, role, created_at
+      FROM users
+      ORDER BY created_at DESC
+    `) as unknown as UserRow[];
+
+    const users = rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      role: r.role,
+      created_at: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+    }));
+
+    return { users };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Erro ao buscar equipe.';
+    console.error('Erro ao listar usuários:', err);
+    return { error: msg };
+  }
 }

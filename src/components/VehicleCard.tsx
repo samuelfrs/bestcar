@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Vehicle } from '@/types';
-import { supabase } from '@/lib/supabase';
+import { createLead } from '@/app/actions/leads';
 
 interface VehicleCardProps {
   car: Vehicle;
@@ -21,18 +21,14 @@ export default function VehicleCard({ car }: VehicleCardProps) {
     setIsSubmitting(true);
     setError(null);
 
-    const { error: insertError } = await supabase
-      .from('leads')
-      .insert([
-        { 
-          vehicle_id: car.id, 
-          customer_name: name, 
-          customer_phone: phone 
-        }
-      ]);
+    const res = await createLead({
+      vehicle_id: car.id,
+      customer_name: name,
+      customer_phone: phone,
+    });
 
-    if (insertError) {
-      setError('Ocorreu um erro ao enviar seu contato. Tente novamente.');
+    if (res?.error) {
+      setError(res.error);
       setIsSubmitting(false);
     } else {
       setSuccess(true);

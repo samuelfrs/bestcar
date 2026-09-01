@@ -1,14 +1,11 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Lead, Vehicle } from '@/types';
+import { useState, useEffect, useCallback } from 'react';
+import { Vehicle } from '@/types';
 import { useRouter } from 'next/navigation';
-import { getUsers, createUser, deleteUser } from './actions';
-
-type LeadWithVehicle = Lead & { 
-  vehicles: { brand: string, model: string } 
-};
+import { getUsers, createUser, deleteUser, logoutAction, getCurrentUserAction } from './actions';
+import { getVehicles, saveVehicle, deleteVehicle } from '@/app/actions/vehicles';
+import { getLeads, deleteLead, type LeadWithVehicle } from '@/app/actions/leads';
 
 type AppUser = {
   id: string;
@@ -58,61 +55,89 @@ export default function AdminDashboard() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  useEffect(() => {
-    checkAuth();
+  const refreshLeads = useCallback(async () => {
+    setIsLoadingLeads(true);
+    const { data, error } = await getLeads();
+    if (!error && data) setLeads(data);
+    setIsLoadingLeads(false);
   }, []);
 
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      router.push('/admin/login');
-      return;
-    }
-    
-    setUserEmail(session.user.email || null);
+  const refreshVehicles = useCallback(async () => {
+    setIsLoadingVehicles(true);
+    const { data, error } = await getVehicles();
+    if (!error && data) setVehicles(data);
+    setIsLoadingVehicles(false);
+  }, []);
 
-    // Fetch Role
-    const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', session.user.id).single();
-    if (roleData) {
-      setUserRole(roleData.role as 'admin' | 'moderador');
-    }
-  };
+  const refreshUsersList = useCallback(async () => {
+    setIsLoadingUsers(true);
+    const res = await getUsers();
+    if (res.error) alert(res.error);
+    else if (res.users) setUsers(res.users);
+    setIsLoadingUsers(false);
+  }, []);
 
   useEffect(() => {
-    if (activeTab === 'leads') fetchLeads();
-    else if (activeTab === 'vehicles') fetchVehicles();
-    else if (activeTab === 'users' && userRole === 'admin') fetchUsersList();
-  }, [activeTab]);
+    let isMounted = true;
+    getCurrentUserAction().then(({ user }) => {
+      if (!isMounted) return;
+      if (!user) {
+        router.push('/admin/login');
+        return;
+      }
+      setUserEmail(user.email);
+      setUserRole(user.role);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (activeTab === 'leads') {
+      getLeads().then(({ data, error }) => {
+        if (!isMounted) return;
+        if (!error && data) setLeads(data);
+        setIsLoadingLeads(false);
+      });
+    } else if (activeTab === 'vehicles') {
+      getVehicles().then(({ data, error }) => {
+        if (!isMounted) return;
+        if (!error && data) setVehicles(data);
+        setIsLoadingVehicles(false);
+      });
+    } else if (activeTab === 'users' && userRole === 'admin') {
+      getUsers().then((res) => {
+        if (!isMounted) return;
+        if (res.error) alert(res.error);
+        else if (res.users) setUsers(res.users);
+        setIsLoadingUsers(false);
+      });
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab, userRole]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await logoutAction();
     router.push('/admin/login');
     router.refresh();
   };
 
   // --- LEADS ---
-  const fetchLeads = async () => {
-    setIsLoadingLeads(true);
-    const { data, error } = await supabase.from('leads').select('*, vehicles(brand, model)').order('created_at', { ascending: false });
-    if (data && !error) setLeads(data as any);
-    setIsLoadingLeads(false);
-  };
-
   const handleDeleteLead = async (id: string, name: string) => {
     if (!window.confirm(`Tem certeza que deseja excluir o lead ${name}?`)) return;
-    const { error } = await supabase.from('leads').delete().eq('id', id);
-    if (error) alert('Erro ao excluir: ' + error.message);
-    else { setSuccessMsg(`Lead removido com sucesso.`); fetchLeads(); setTimeout(() => setSuccessMsg(''), 4000); }
+    const res = await deleteLead(id);
+    if (res?.error) alert('Erro ao excluir: ' + res.error);
+    else { setSuccessMsg(`Lead removido com sucesso.`); refreshLeads(); setTimeout(() => setSuccessMsg(''), 4000); }
   };
 
   // --- VEHICLES ---
-  const fetchVehicles = async () => {
-    setIsLoadingVehicles(true);
-    const { data, error } = await supabase.from('vehicles').select('*').order('created_at', { ascending: false });
-    if (data && !error) setVehicles(data);
-    setIsLoadingVehicles(false);
-  };
-
   const openNewVehicleModal = () => {
     setEditingVehicleId(null); setBrand(''); setModel(''); setYear(''); setPrice(''); setImageUrl(''); setStatus('disponível');
     setErrorMsg(''); setIsVehicleModalOpen(true);
@@ -125,40 +150,38 @@ export default function AdminDashboard() {
 
   const handleDeleteVehicle = async (id: string, name: string) => {
     if (!window.confirm(`Tem certeza que deseja deletar o veículo ${name}?`)) return;
-    const { error } = await supabase.from('vehicles').delete().eq('id', id);
-    if (error) alert('Erro ao excluir: ' + error.message);
-    else { setSuccessMsg(`Removido com sucesso.`); fetchVehicles(); setTimeout(() => setSuccessMsg(''), 4000); }
+    const res = await deleteVehicle(id);
+    if (res?.error) alert('Erro ao excluir: ' + res.error);
+    else { setSuccessMsg(`Removido com sucesso.`); refreshVehicles(); setTimeout(() => setSuccessMsg(''), 4000); }
   };
 
   const handleSaveVehicle = async (e: React.FormEvent) => {
     e.preventDefault(); setIsSubmitting(true); setErrorMsg('');
-    const payload = { brand, model, year: parseInt(year), price: parseFloat(price), status, image_url: imageUrl || null };
+    const payload = { 
+      id: editingVehicleId, 
+      brand, 
+      model, 
+      year: parseInt(year), 
+      price: parseFloat(price), 
+      status, 
+      image_url: imageUrl || null 
+    };
 
     if (isNaN(payload.year) || isNaN(payload.price)) {
       setErrorMsg('Ano e Preço numéricos inválidos.'); setIsSubmitting(false); return;
     }
 
-    const { error } = editingVehicleId 
-      ? await supabase.from('vehicles').update(payload).eq('id', editingVehicleId)
-      : await supabase.from('vehicles').insert([payload]);
+    const res = await saveVehicle(payload);
 
-    if (error) setErrorMsg('Erro: ' + error.message);
+    if (res?.error) setErrorMsg('Erro: ' + res.error);
     else {
-      setSuccessMsg(`Salvo com sucesso!`); setIsVehicleModalOpen(false); fetchVehicles();
+      setSuccessMsg(`Salvo com sucesso!`); setIsVehicleModalOpen(false); refreshVehicles();
       setTimeout(() => setSuccessMsg(''), 4000);
     }
     setIsSubmitting(false);
   };
 
   // --- USERS ---
-  const fetchUsersList = async () => {
-    setIsLoadingUsers(true);
-    const res = await getUsers();
-    if (res.error) alert(res.error);
-    else if (res.users) setUsers(res.users);
-    setIsLoadingUsers(false);
-  };
-
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newUserPassword.length < 6) { setUserActionMsg("A senha deve ter pelo menos 6 caracteres."); return; }
@@ -171,7 +194,7 @@ export default function AdminDashboard() {
     } else {
        setUserActionMsg(`Usuário ${res.user?.email} criado com sucesso! O acesso já está liberado.`);
        setNewUserEmail(''); setNewUserName(''); setNewUserPassword('');
-       fetchUsersList();
+       refreshUsersList();
     }
     setIsCreatingUser(false);
   };
@@ -181,7 +204,7 @@ export default function AdminDashboard() {
      setUserActionMsg('Removendo...');
      const res = await deleteUser(id);
      if (res.error) setUserActionMsg(res.error);
-     else { setUserActionMsg('Usuário removido!'); fetchUsersList(); }
+     else { setUserActionMsg('Usuário removido!'); refreshUsersList(); }
      setTimeout(() => setUserActionMsg(''), 5000);
   };
 
@@ -228,7 +251,6 @@ export default function AdminDashboard() {
 
           {activeTab === 'vehicles' && (
             <section className="space-y-8 animate-in fade-in duration-500">
-               {/* Same visually as previous iteration */}
                <div className="flex justify-between items-end gap-4">
                   <header>
                     <h1 className="text-4xl font-bold text-white tracking-tight">Estoque de Veículos</h1>
@@ -365,7 +387,7 @@ export default function AdminDashboard() {
                             <th className="pb-4 font-bold text-neutral-500 uppercase tracking-widest text-xs">Acesso</th>
                             <th className="pb-4 font-bold text-neutral-500 uppercase tracking-widest text-xs">Ações</th></tr></thead>
                           <tbody className="divide-y divide-neutral-800/50">
-                            {users.map((u: any) => (
+                            {users.map((u) => (
                               <tr key={u.id} className="hover:bg-neutral-800/30">
                                 <td className="py-4 font-medium text-white flex flex-col">
                                    <span>{u.name}</span>
@@ -376,7 +398,7 @@ export default function AdminDashboard() {
                                 </td>
                                 <td className="py-4">
                                   {u.email !== userEmail && (
-                                     <button onClick={() => handleDeleteUser(u.id, u.email)} className="text-red-500 hover:text-red-400 text-sm font-bold transition-colors">Excluir Acesso</button>
+                                     <button onClick={() => handleDeleteUser(u.id, u.email || '')} className="text-red-500 hover:text-red-400 text-sm font-bold transition-colors">Excluir Acesso</button>
                                   )}
                                 </td>
                               </tr>
@@ -392,7 +414,7 @@ export default function AdminDashboard() {
         </div>
       </main>
 
-      {/* Vehicle Form Modal (Reduced syntax for brevity) */}
+      {/* Vehicle Form Modal */}
       {isVehicleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => !isSubmitting && setIsVehicleModalOpen(false)} />
